@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#6C63FF">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AI OS">
+<link rel="manifest" href="/manifest.json">
+<title>AI OS v3 | Command Center</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@200;300;400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  /* Login/app visibility: app shows only after .on is added in main.js doLogin */
+  #app { display: none; }
+  #app.on { display: grid; }
+</style>
+
+<!--
+  SECURITY: В production этот блок генерирует сервер.
+  Никогда не хардкодим PIN, ключи и IP в исходниках.
+  PIN_HASH = SHA-256 от вашего пин-кода (получить: https://emn178.github.io/online-tools/sha256.html)
+-->
+<script>
+window.__ENV = {
+    AI_PROXY:     '', // AI прокси не используется на статичном хостинге
+    SUPABASE_URL: 'https://qccrvwxiwhjwunbkcmkd.supabase.co',
+    SUPABASE_KEY: 'sb_publishable_XlW6sfXJm8nvbTjynfId1Q_tW-2DHQa',
+    WS_URL:       '',
+    PIN_HASH:     'c0d2b0fe4d7671d1bb90703e6ab60ab14f01998648c45ba1da553283f8ab9dd6', // SHA-256 от 1718
+};
+</script>
+</head>
+<body>
+<div id="toasts"></div>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- LOGIN                                          -->
+<!-- ══════════════════════════════════════════════ -->
+<div id="login-screen" class="login">
+  <div class="login-logo">
+    <h1>AI OS</h1>
+    <div class="sub">Personal Operating System</div>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:24px">
+    <input class="input" id="pin-inp" type="password" maxlength="8" placeholder="PIN" autocomplete="off" autofocus style="width:200px;text-align:center;letter-spacing:.4em">
+    <button class="btn primary" onclick="doLogin()" style="height:36px;padding:0 32px">ВОЙТИ</button>
+    <div id="login-err" style="color:#b08080;font-family:var(--mono);font-size:11px;letter-spacing:.1em"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- APP                                            -->
+<!-- ══════════════════════════════════════════════ -->
+<div id="app" class="shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="side-logo">AI</div>
+    <div class="side-status" id="sb-dot" title="Подключение…"></div>
+    <nav class="side-nav">
+      <button class="side-btn" data-page="dashboard" onclick="nav('dashboard')" title="Dashboard">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+      </button>
+      <button class="side-btn" data-page="projects" onclick="nav('projects')" title="Проекты">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+      </button>
+      <button class="side-btn" data-page="studio" onclick="nav('studio')" title="Студия">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><circle cx="12" cy="12" r="9"></circle></svg>
+      </button>
+      <button class="side-btn" data-page="focus" onclick="nav('focus')" title="Фокус">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+      </button>
+      <button class="side-btn" data-page="finances" onclick="nav('finances')" title="Финансы">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+      </button>
+      <button class="side-btn" data-page="habits" onclick="nav('habits')" title="Привычки">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>
+      </button>
+      <button class="side-btn" data-page="projectmap" onclick="nav('projectmap')" title="Карта">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      </button>
+    </nav>
+    <div class="side-foot">
+      <button class="side-btn" id="sb-settings" title="Настройки">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx='12' cy='12' r='3'/><path d='M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z'/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-crumb"><span>AIOS</span><span style="color:var(--ink-4)">/</span><span class="now" id="view-title">DASHBOARD</span></div>
+      <div class="topbar-spacer"></div>
+      <div class="topbar-clock" id="topbar-clock">--:--:--</div>
+      <div class="topbar-search" onclick="window.dispatchEvent(new CustomEvent('cmdk:open'))">
+        <span style="flex:1">Поиск, команды…</span>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--ink-4)">⌘K</span>
+      </div>
+    </div>
+    <div class="content">
+      <div id="active-view" role="main" aria-live="polite"></div>
+    </div>
+  </main>
+</div>
+
+<!-- BOTTOM SHEETS -->
+<div class="sheet-overlay" id="sheet-overlay"></div>
+<div class="sheet" id="task-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-body" id="task-sheet-body"></div>
+</div>
+<div class="sheet" id="habit-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-body" id="habit-sheet-body"></div>
+</div>
+<div class="sheet" id="fin-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-body" id="fin-sheet-body"></div>
+</div>
+<!-- COMMAND PALETTE root -->
+<div id="cmdk-root"></div>
+<!-- MODAL ROOT (legacy) -->
+<div id="modal-root"></div>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- HERMES AGENT WIDGET                           -->
+<!-- ══════════════════════════════════════════════ -->
+<div id="hermes-widget">
+  <button id="hermes-btn" onclick="hermesToggle()" title="Hermes Agent">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
+      <path d="M8 12h8M12 8v8"/>
+    </svg>
+    <span id="hermes-label">HERMES</span>
+  </button>
+  <div id="hermes-panel">
+    <div id="hermes-panel-head">
+      <span style="font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--ink-3)">HERMES AGENT</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button onclick="hermesPopout()" style="background:none;border:none;cursor:pointer;color:var(--ink-3);padding:2px" title="Открыть в новой вкладке">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </button>
+        <button onclick="hermesToggle()" style="background:none;border:none;cursor:pointer;color:var(--ink-3);padding:2px" title="Закрыть">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+    <iframe id="hermes-iframe" src="http://localhost:9119" allow="microphone"></iframe>
+    <div id="hermes-offline" style="display:none">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--ink-4)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--ink-3);letter-spacing:.1em;margin-top:8px">АГЕНТ НЕДОСТУПЕН</div>
+      <div style="font-size:11px;color:var(--ink-4);margin-top:4px">localhost:7860 не отвечает</div>
+      <button onclick="hermesRetry()" style="margin-top:12px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;background:none;border:1px solid var(--line-2);color:var(--ink-3);padding:4px 12px;cursor:pointer;border-radius:var(--radius)">RETRY</button>
+    </div>
+  </div>
+</div>
+<style>
+#hermes-widget {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  font-family: var(--mono, 'JetBrains Mono', monospace);
+}
+#hermes-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: #131315;
+  border: 1px solid #2a2a2e;
+  color: #a8a8ae;
+  padding: 0 14px;
+  height: 38px;
+  border-radius: 19px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 10px;
+  letter-spacing: .14em;
+  box-shadow: 0 4px 20px rgba(0,0,0,.5);
+  transition: border-color .15s, color .15s;
+}
+#hermes-btn:hover { border-color: #6C63FF; color: #ededef; }
+#hermes-btn svg { flex-shrink: 0; }
+#hermes-label { flex-shrink: 0; }
+#hermes-panel {
+  display: none;
+  position: absolute;
+  bottom: 50px;
+  right: 0;
+  width: 420px;
+  height: 580px;
+  background: #131315;
+  border: 1px solid #222225;
+  border-radius: 10px;
+  box-shadow: 0 8px 40px rgba(0,0,0,.7);
+  overflow: hidden;
+  flex-direction: column;
+}
+#hermes-panel.open { display: flex; }
+#hermes-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid #222225;
+  flex-shrink: 0;
+}
+#hermes-iframe {
+  flex: 1;
+  border: none;
+  width: 100%;
+  background: #0d0d0e;
+}
+#hermes-offline {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #0d0d0e;
+}
+</style>
+<script>
+(function() {
+  function hermesToggle() {
+    const panel = document.getElementById('hermes-panel');
+    panel.classList.toggle('open');
+    if (panel.classList.contains('open')) hermesCheck();
+  }
+  function hermesCheck() {
+    const iframe = document.getElementById('hermes-iframe');
+    const offline = document.getElementById('hermes-offline');
+    fetch('http://localhost:9119', { mode: 'no-cors', signal: AbortSignal.timeout(3000) })
+      .then(() => { iframe.style.display = ''; offline.style.display = 'none'; })
+      .catch(() => { iframe.style.display = 'none'; offline.style.display = 'flex'; });
+  }
+  function hermesPopout() {
+    window.open('http://localhost:9119', '_blank', 'width=900,height=700');
+  }
+  function hermesRetry() {
+    document.getElementById('hermes-iframe').style.display = '';
+    document.getElementById('hermes-offline').style.display = 'none';
+    document.getElementById('hermes-iframe').src = 'http://localhost:9119?' + Date.now();
+  }
+  window.hermesToggle = hermesToggle;
+  window.hermesPopout = hermesPopout;
+  window.hermesRetry = hermesRetry;
+})();
+</script>
+
+<script type="module" src="main.js"></script>
+<script>
+function nav(view, pid) {
+    if (window.__store) {
+        window.__store.dispatch('SET_VIEW', { view, projectId: pid || null });
+    } else {
+        setTimeout(() => nav(view, pid), 50);
+    }
+    document.querySelectorAll('.side-btn').forEach(b => b.classList.remove('active'));
+    const btn = document.querySelector(`.side-btn[data-page="${view}"]`);
+    if (btn) btn.classList.add('active');
+}
+function q(text) {
+    const inp = document.getElementById('global-action-input');
+    if (inp) { inp.value = text; inp.focus(); }
+}
+document.addEventListener('keydown', e => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        console.log('cmdk');
+        window.dispatchEvent(new CustomEvent('cmdk:open'));
+    }
+});
+function updateClock() {
+    const el = document.getElementById('topbar-clock');
+    if (!el) return;
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2,'0');
+    const m = String(now.getMinutes()).padStart(2,'0');
+    const s = String(now.getSeconds()).padStart(2,'0');
+    el.innerHTML = `${h}:${m}:<span style="color:var(--ink-4)">${s}</span>`;
+}
+updateClock();
+setInterval(updateClock, 1000);
+</script>
+</body>
+</html>
